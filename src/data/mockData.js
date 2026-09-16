@@ -1,6 +1,8 @@
 // Realistic mock data for Smart Carpool & Dynamic Route Matching System
 // College CSE Final Year Project
 
+export const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='128' height='128' fill='url(%23grad)'/%3E%3Ccircle cx='64' cy='48' r='22' fill='%23ffffff' fill-opacity='0.95'/%3E%3Cpath d='M64 76c-20 0-36 11-36 26v6h72v-6c0-15-16-26-36-26z' fill='%23ffffff' fill-opacity='0.95'/%3E%3C/svg%3E";
+
 export const INITIAL_CURRENT_USER = {
   id: 'usr_hari_01',
   name: 'Hariharan (Hari)',

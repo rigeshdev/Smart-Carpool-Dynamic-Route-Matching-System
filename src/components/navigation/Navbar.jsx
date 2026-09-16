@@ -12,7 +12,7 @@ import {
   Car
 } from 'lucide-react';
 import { useCarpool } from '../../context/CarpoolContext';
-import { DEMO_USERS } from '../../data/mockData';
+import { DEMO_USERS, DEFAULT_AVATAR } from '../../data/mockData';
 
 export default function Navbar({ onOpenMobileMenu }) {
   const { currentUser, role, toggleRole, switchUser, addToast } = useCarpool();
@@ -83,9 +83,12 @@ export default function Navbar({ onOpenMobileMenu }) {
               className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors"
             >
               <img
-                src={currentUser.avatar}
+                src={currentUser.avatar || DEFAULT_AVATAR}
                 alt={currentUser.name}
-                className="w-6 h-6 rounded-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = DEFAULT_AVATAR;
+                }}
+                className="w-6 h-6 rounded-full object-cover bg-slate-100"
               />
               <span className="hidden sm:inline font-semibold">{currentUser.name.split(' ')[0]}</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -113,9 +116,12 @@ export default function Navbar({ onOpenMobileMenu }) {
                     }`}
                   >
                     <img
-                      src={user.avatar}
+                      src={user.avatar || DEFAULT_AVATAR}
                       alt={user.name}
-                      className="w-7 h-7 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = DEFAULT_AVATAR;
+                      }}
+                      className="w-7 h-7 rounded-full object-cover bg-slate-100"
                     />
                     <div className="min-w-0">
                       <p className="truncate">{user.name}</p>

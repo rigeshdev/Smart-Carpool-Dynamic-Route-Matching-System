@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User,
   Mail,
@@ -13,21 +13,26 @@ import {
   Repeat,
   Compass,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Camera,
+  Trash2,
+  Upload
 } from 'lucide-react';
 import ProfileCard from '../components/cards/ProfileCard';
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
 import { useCarpool } from '../context/CarpoolContext';
-import { DEMO_USERS } from '../data/mockData';
+import { DEMO_USERS, DEFAULT_AVATAR } from '../data/mockData';
 
 export default function ProfilePage() {
-  const { currentUser, updateProfile, switchUser, toggleRole, role } = useCarpool();
+  const { currentUser, updateProfile, switchUser, toggleRole, role, addToast } = useCarpool();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Edit form states initialized from current user
-  const [name, setName] = useState(currentUser.name);
-  const [phone, setPhone] = useState(currentUser.phone);
+  const [name, setName] = useState(currentUser.name || '');
+  const [phone, setPhone] = useState(currentUser.phone || '');
+  const [avatar, setAvatar] = useState(currentUser.avatar || DEFAULT_AVATAR);
   const [preferredDeparture, setPreferredDeparture] = useState(
     currentUser.preferences?.preferredDeparture || '05:00 PM'
   );
@@ -37,11 +42,68 @@ export default function ProfilePage() {
     currentUser.preferences?.maxDetourKm || 3.0
   );
 
+  // Sync state whenever current user changes or edit modal opens
+  useEffect(() => {
+    setName(currentUser.name || '');
+    setPhone(currentUser.phone || '');
+    setAvatar(currentUser.avatar || DEFAULT_AVATAR);
+    setPreferredDeparture(currentUser.preferences?.preferredDeparture || '05:00 PM');
+    setVehicleModel(currentUser.vehicle?.model || 'Hyundai i20');
+    setLicensePlate(currentUser.vehicle?.licensePlate || 'TN-45-AZ-2024');
+    setMaxDetourKm(currentUser.preferences?.maxDetourKm || 3.0);
+  }, [currentUser, isEditModalOpen]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      if (addToast) addToast('Please select a valid image file (PNG, JPG, WEBP).', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        // Offscreen canvas for centered 1:1 square crop
+        const canvas = document.createElement('canvas');
+        const size = 400; // high quality 400x400 square portrait
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Calculate center crop
+        const minDim = Math.min(img.width, img.height);
+        const startX = (img.width - minDim) / 2;
+        const startY = (img.height - minDim) / 2;
+
+        // Draw cropped square
+        ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
+
+        const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        setAvatar(croppedDataUrl);
+        if (addToast) addToast('Profile photo cropped to square portrait!', 'success');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setAvatar(DEFAULT_AVATAR);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (addToast) addToast('Profile photo reset to default avatar.', 'info');
+  };
+
   const handleSaveProfile = (e) => {
     e.preventDefault();
     updateProfile({
       name,
       phone,
+      avatar: avatar || DEFAULT_AVATAR,
       preferences: {
         ...currentUser.preferences,
         preferredDeparture,
@@ -213,6 +275,66 @@ export default function ProfilePage() {
         title="Edit College Profile"
       >
         <form onSubmit={handleSaveProfile} className="space-y-4">
+          {/* Profile Photo Upload & Square Portrait Preview */}
+          <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
+            <label className="block text-xs font-semibold text-slate-700 mb-2">
+              Profile Photo
+            </label>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {/* Rounded-square portrait preview with verification badge */}
+              <div className="relative shrink-0">
+                <img
+                  src={avatar || DEFAULT_AVATAR}
+                  alt="Avatar Preview"
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_AVATAR;
+                  }}
+                  className="w-20 h-20 rounded-2xl object-cover ring-2 ring-indigo-500/30 shadow-md bg-white"
+                />
+                <div
+                  className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full ring-2 ring-white shadow-xs"
+                  title="Verified Campus Student"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </div>
+              </div>
+
+              {/* Upload & Remove Controls */}
+              <div className="flex-1 text-center sm:text-left space-y-2">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="profile-photo-file-input"
+                  />
+                  <label
+                    htmlFor="profile-photo-file-input"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-xs"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    Upload Photo
+                  </label>
+                  {avatar && avatar !== DEFAULT_AVATAR && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 rounded-xl text-xs font-semibold transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 leading-tight">
+                  Upload from computer. Automatically cropped into a 1:1 square portrait.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Full Name

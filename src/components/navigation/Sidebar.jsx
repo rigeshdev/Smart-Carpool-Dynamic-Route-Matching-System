@@ -14,6 +14,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useCarpool } from '../../context/CarpoolContext';
+import { DEFAULT_AVATAR } from '../../data/mockData';
 
 export default function Sidebar() {
   const { currentUser, role, toggleRole, addToast } = useCarpool();
@@ -125,9 +126,12 @@ export default function Sidebar() {
       <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
         <RouterNavLink to="/profile" className="flex items-center gap-2.5 min-w-0 group">
           <img
-            src={currentUser.avatar}
+            src={currentUser.avatar || DEFAULT_AVATAR}
             alt={currentUser.name}
-            className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-500 transition-all"
+            onError={(e) => {
+              e.currentTarget.src = DEFAULT_AVATAR;
+            }}
+            className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-500 transition-all bg-slate-800"
           />
           <div className="min-w-0">
             <p className="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition-colors">

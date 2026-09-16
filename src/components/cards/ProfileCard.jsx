@@ -10,9 +10,11 @@ import {
   Leaf,
   Calendar,
   Settings,
-  Edit3
+  Edit3,
+  Camera
 } from 'lucide-react';
 import Button from '../common/Button';
+import { DEFAULT_AVATAR } from '../../data/mockData';
 
 export default function ProfileCard({ user, onEdit }) {
   const isDriver = user.role === 'driver';
@@ -31,15 +33,31 @@ export default function ProfileCard({ user, onEdit }) {
       <div className="px-6 pb-6 pt-0 relative">
         {/* Avatar and Top Actions */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-12 mb-4 gap-3">
-          <div className="relative inline-block">
+          <div className="relative inline-block group">
             <img
-              src={user.avatar}
+              src={user.avatar || DEFAULT_AVATAR}
               alt={user.name}
-              className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+              onError={(e) => {
+                e.currentTarget.src = DEFAULT_AVATAR;
+              }}
+              className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white shadow-lg bg-slate-100"
             />
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full ring-2 ring-white" title="Verified Campus Student">
+            <div
+              className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full ring-2 ring-white shadow-xs"
+              title="Verified Campus Student"
+            >
               <ShieldCheck className="w-4 h-4" />
             </div>
+
+            {/* Quick edit overlay button on hover */}
+            <button
+              onClick={onEdit}
+              type="button"
+              className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity backdrop-blur-[1px] cursor-pointer"
+              title="Change Profile Photo"
+            >
+              <Camera className="w-5 h-5 text-white drop-shadow" />
+            </button>
           </div>
 
           <Button
