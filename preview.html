@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Carpool & Dynamic Route Matching System | Interactive Preview</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- React & ReactDOM CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel for inline JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- MOCK DATA ---
+    const INITIAL_USERS = [
+      {
+        id: 'usr_hari_01',
+        name: 'Hariharan (Hari)',
+        role: 'driver',
+        email: 'hari.cse@college.edu',
+        phone: '+91 98421 87654',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        department: 'B.E. Computer Science & Engineering',
+        batch: 'Final Year (2022 - 2026)',
+        collegeId: 'CSE22045',
+        rating: 4.9,
+        totalTrips: 42,
+        savedCo2: '148 kg',
+        vehicle: {
+          model: 'Hyundai i20 Asta (White)',
+          licensePlate: 'TN-45-AZ-2024',
+          totalSeats: 4,
+          comfort: 'AC • USB Charging • Smooth driving'
+        },
+        preferences: {
+          preferredDeparture: '05:00 PM',
+          maxDetourKm: 3.5,
+          musicAllowed: true,
+          chatty: 'Moderate'
+        }
+      },
+      {
+        id: 'usr_arun_02',
+        name: 'Arun Kumar',
+        role: 'passenger',
+        email: 'arun.cse@college.edu',
+        phone: '+91 97890 12345',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        department: 'B.Tech IT',
+        batch: 'Final Year',
+        collegeId: 'IT22019',
+        rating: 4.8,
+        totalTrips: 28,
+        savedCo2: '94 kg',
+        vehicle: null,
+        preferences: { preferredDeparture: '05:05 PM', maxDetourKm: 2.0 }
+      },
+      {
+        id: 'usr_karthi_03',
+        name: 'Karthi Keyan',
+        role: 'passenger',
+        email: 'karthi.mech@college.edu',
+        phone: '+91 94432 98765',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+        department: 'B.E. Mechanical',
+        batch: 'Third Year',
+        collegeId: 'ME23078',
+        rating: 4.7,
+        totalTrips: 19,
+        savedCo2: '62 kg',
+        vehicle: null,
+        preferences: { preferredDeparture: '05:25 PM', maxDetourKm: 4.0 }
+      }
+    ];
+
+    const INITIAL_RIDES = [
+      {
+        id: 'ride_101',
+        driverName: 'Hariharan (Hari)',
+        driverAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        driverRating: 4.9,
+        pickup: 'College Main Campus (Gate 1)',
+        destination: 'Srirangam Temple North Gate',
+        waypoints: ['Samayapuram Tollway', 'No. 1 Tollgate'],
+        departureTime: '05:00 PM',
+        availableSeats: 3,
+        totalSeats: 4,
+        vehicleType: 'Car (Hyundai i20)',
+        estimatedDistance: '18.4 km',
+        estimatedDetour: '1.2 km (8 mins)',
+        matchScore: 94,
+        costPerSeat: '₹35'
+      },
+      {
+        id: 'ride_102',
+        driverName: 'Dr. Suresh V. (Faculty)',
+        driverAvatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150',
+        driverRating: 5.0,
+        pickup: 'Academic Block 3 Parking',
+        destination: 'Chathiram Bus Stand, Trichy',
+        waypoints: ['Samayapuram Bypass'],
+        departureTime: '05:15 PM',
+        availableSeats: 2,
+        totalSeats: 4,
+        vehicleType: 'Sedan (Honda City)',
+        estimatedDistance: '22.0 km',
+        estimatedDetour: '2.4 km (12 mins)',
+        matchScore: 82,
+        costPerSeat: '₹40'
+      },
+      {
+        id: 'ride_103',
+        driverName: 'Meenakshi R. (ECE)',
+        driverAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+        driverRating: 4.8,
+        pickup: 'College Girls Hostel Gate',
+        destination: 'KK Nagar / Central Bus Stand',
+        waypoints: ['Tollgate', 'Mambazhasalai'],
+        departureTime: '05:30 PM',
+        availableSeats: 1,
+        totalSeats: 4,
+        vehicleType: 'Compact SUV (Tata Punch)',
+        estimatedDistance: '24.5 km',
+        estimatedDetour: '3.1 km (15 mins)',
+        matchScore: 76,
+        costPerSeat: '₹45'
+      }
+    ];
+
+    const INITIAL_MATCHES = [
+      {
+        id: 'match_01',
+        driver: {
+          name: 'Hariharan (Hari)',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+          role: 'Driver (CSE Final Year)',
+          vehicle: 'Hyundai i20 (TN-45-AZ-2024)'
+        },
+        passenger: {
+          name: 'Arun Kumar',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+          role: 'Passenger (IT Final Year)'
+        },
+        pickup: 'Near College Campus (Arch Gate)',
+        destination: 'Srirangam North Chithirai St.',
+        departureTime: '05:00 PM (Passenger: 05:05 PM)',
+        availableSeats: 3,
+        totalScore: 94,
+        factorBreakdown: [
+          { name: 'Route Similarity', score: 40, max: 40, desc: '92% shared corridor along NH-45' },
+          { name: 'Time Compatibility', score: 25, max: 25, desc: '5 mins buffer schedule difference' },
+          { name: 'Pickup Distance', score: 20, max: 20, desc: 'Pickup is 350m from gate' },
+          { name: 'Extra Detour', score: 9, max: 15, desc: 'Only 1.2 km detour required' }
+        ],
+        detourKm: '1.2 km',
+        detourMins: '8 mins',
+        co2Reduction: '4.8 kg',
+        status: 'Recommended'
+      },
+      {
+        id: 'match_02',
+        driver: {
+          name: 'Hariharan (Hari)',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+          role: 'Driver (CSE Final Year)',
+          vehicle: 'Hyundai i20 (TN-45-AZ-2024)'
+        },
+        passenger: {
+          name: 'Karthi Keyan',
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+          role: 'Passenger (Mechanical 3rd Yr)'
+        },
+        pickup: 'Samayapuram Bus Stand Junction',
+        destination: 'Srirangam East Gate',
+        departureTime: '05:00 PM (Passenger: 05:25 PM)',
+        availableSeats: 3,
+        totalScore: 82,
+        factorBreakdown: [
+          { name: 'Route Similarity', score: 34, max: 40, desc: 'Naturally crosses Samayapuram bypass' },
+          { name: 'Time Compatibility', score: 22, max: 25, desc: 'Synchronized ETA at Samayapuram' },
+          { name: 'Pickup Distance', score: 16, max: 20, desc: '600m diversion to bus shelter' },
+          { name: 'Extra Detour', score: 10, max: 15, desc: '2.1 km detour required' }
+        ],
+        detourKm: '2.1 km',
+        detourMins: '11 mins',
+        co2Reduction: '4.2 kg',
+        status: 'Recommended'
+      }
+    ];
+
+    // --- MAIN APP COMPONENT ---
+    function App() {
+      const [page, setPage] = useState('landing'); // landing, auth, dashboard, create-ride, find-ride, recommendations, match-details, route, my-rides, profile
+      const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]);
+      const [role, setRole] = useState('driver');
+      const [rides, setRides] = useState(INITIAL_RIDES);
+      const [matches, setMatches] = useState(INITIAL_MATCHES);
+      const [activeMatchId, setActiveMatchId] = useState('match_01');
+      const [toast, setToast] = useState(null);
+      const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+      const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+      };
+
+      const toggleRole = () => {
+        const next = role === 'driver' ? 'passenger' : 'driver';
+        setRole(next);
+        showToast(`Switched active mode to ${next.toUpperCase()}`);
+      };
+
+      const switchUser = (id) => {
+        const u = INITIAL_USERS.find(user => user.id === id);
+        if (u) {
+          setCurrentUser(u);
+          setRole(u.role);
+          showToast(`Switched user perspective to ${u.name}`);
+        }
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-slate-50">
+          {/* Top Demo Notification Pill */}
+          <div className="bg-slate-900 text-white text-[11px] py-1.5 px-4 text-center flex items-center justify-between border-b border-slate-800">
+            <span className="font-semibold text-indigo-300">
+              🎓 College CSE Final Year Project: Smart Carpool & Dynamic Route Matching System
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline text-slate-400">Mode: <strong className="text-white uppercase">{role}</strong></span>
+              <button
+                onClick={toggleRole}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded text-[10px] font-bold"
+              >
+                Switch Role ⇄
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Bar */}
+          <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div
+                onClick={() => setPage('landing')}
+                className="flex items-center gap-2.5 cursor-pointer group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black shadow-md shadow-indigo-600/30">
+                  🚗
+                </div>
+                <div>
+                  <span className="font-extrabold text-base text-slate-900 block leading-tight group-hover:text-indigo-600 transition-colors">
+                    SmartCarpool
+                  </span>
+                  <span className="text-[10px] font-bold text-indigo-600 block">
+                    Campus Route Matching
+                  </span>
+                </div>
+              </div>
+
+              {/* Desktop Nav Links */}
+              <nav className="hidden lg:flex items-center gap-5 text-xs font-bold text-slate-600">
+                <button
+                  onClick={() => setPage('dashboard')}
+                  className={`py-1.5 px-3 rounded-lg transition-colors ${page === 'dashboard' ? 'bg-indigo-50 text-indigo-600' : 'hover:text-slate-900'}`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setPage('find-ride')}
+                  className={`py-1.5 px-3 rounded-lg transition-colors ${page === 'find-ride' ? 'bg-indigo-50 text-indigo-600' : 'hover:text-slate-900'}`}
+                >
+                  Find Ride
+                </button>
+                <button
+                  onClick={() => setPage('create-ride')}
+                  className={`py-1.5 px-3 rounded-lg transition-colors ${page === 'create-ride' ? 'bg-indigo-50 text-indigo-600' : 'hover:text-slate-900'}`}
+                >
+                  + Offer Ride
+                </button>
+                <button
+                  onClick={() => setPage('recommendations')}
+                  className={`py-1.5 px-3 rounded-lg transition-colors ${page === 'recommendations' ? 'bg-indigo-50 text-indigo-600' : 'hover:text-slate-900'}`}
+                >
+                  Matches (AI)
+                </button>
+                <button
+                  onClick={() => setPage('route')}
+                  className={`py-1.5 px-3 rounded-lg transition-colors ${page === 'route' ? 'bg-indigo-50 text-indigo-600' : 'hover:text-slate-900'}`}
+                >
+                  Route Map
+                </button>
+                <button
+                  onClick={() => setPage('my-rides')}
+                  className={`py-1.5 px-3 rounded-lg transition-colors ${page === 'my-rides' ? 'bg-indigo-50 text-indigo-600' : 'hover:text-slate-900'}`}
+                >
+                  My Rides
+                </button>
+                <button
+                  onClick={() => setPage('profile')}
+                  className={`py-1.5 px-3 rounded-lg transition-colors ${page === 'profile' ? 'bg-indigo-50 text-indigo-600' : 'hover:text-slate-900'}`}
+                >
+                  Profile
+                </button>
+              </nav>
+
+              {/* User Selector Dropdown */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setPage(page === 'auth' ? 'dashboard' : 'auth')}
+                  className="hidden sm:block text-xs font-semibold text-slate-500 hover:text-slate-800"
+                >
+                  {page === 'auth' ? 'Back' : 'Auth UI'}
+                </button>
+
+                <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-500/30"
+                  />
+                  <div className="hidden sm:block text-left text-xs">
+                    <span className="font-bold text-slate-800 block leading-tight">{currentUser.name.split(' ')[0]}</span>
+                    <span className="text-[10px] text-indigo-600 font-semibold uppercase">{role}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setMobileNavOpen(!mobileNavOpen)}
+                  className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+                >
+                  ☰
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Nav Menu Dropdown */}
+            {mobileNavOpen && (
+              <div className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 space-y-2 text-xs font-bold">
+                <button onClick={() => { setPage('dashboard'); setMobileNavOpen(false); }} className="block w-full text-left py-2 text-slate-700">Dashboard</button>
+                <button onClick={() => { setPage('find-ride'); setMobileNavOpen(false); }} className="block w-full text-left py-2 text-slate-700">Find Ride</button>
+                <button onClick={() => { setPage('create-ride'); setMobileNavOpen(false); }} className="block w-full text-left py-2 text-slate-700">Create Ride</button>
+                <button onClick={() => { setPage('recommendations'); setMobileNavOpen(false); }} className="block w-full text-left py-2 text-slate-700">Matches</button>
+                <button onClick={() => { setPage('route'); setMobileNavOpen(false); }} className="block w-full text-left py-2 text-slate-700">Route Map</button>
+                <button onClick={() => { setPage('my-rides'); setMobileNavOpen(false); }} className="block w-full text-left py-2 text-slate-700">My Rides</button>
+                <button onClick={() => { setPage('profile'); setMobileNavOpen(false); }} className="block w-full text-left py-2 text-slate-700">Profile</button>
+              </div>
+            )}
+          </header>
+
+          {/* Toast Notification */}
+          {toast && (
+            <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2 text-xs font-bold animate-bounce">
+              <span>✓</span>
+              <span>{toast.msg}</span>
+            </div>
+          )}
+
+          {/* PAGE CONTENT RENDERING */}
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+            {page === 'landing' && (
+              <div className="space-y-16 py-6">
+                <div className="text-center max-w-3xl mx-auto space-y-4">
+                  <div className="inline-block px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold">
+                    College CSE Project • Smart Campus Mobility
+                  </div>
+                  <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+                    Smart Carpool & <br/>
+                    <span className="text-indigo-600">Dynamic Route Matching</span>
+                  </h1>
+                  <p className="text-base font-semibold text-indigo-900/80">
+                    "Smart rides. Better routes. Shared journeys."
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                    Peer-to-peer carpool platform where students & faculty enter their pickup location, destination, and seats. Dynamic algorithms rank matches based on route similarity, time compatibility, and minimal detour.
+                  </p>
+                  <div className="flex justify-center gap-4 pt-2">
+                    <button
+                      onClick={() => setPage('find-ride')}
+                      className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-all"
+                    >
+                      Find a Ride
+                    </button>
+                    <button
+                      onClick={() => setPage('create-ride')}
+                      className="px-6 py-3 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-xs sm:text-sm hover:bg-indigo-50 transition-all"
+                    >
+                      Offer a Ride
+                    </button>
+                  </div>
+                </div>
+
+                {/* Simulation Preview Card */}
+                <div className="max-w-4xl mx-auto bg-white rounded-3xl p-6 border border-slate-200 shadow-xl">
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-indigo-600">Demonstration Route</span>
+                      <h3 className="text-lg font-bold text-slate-900">Hari (Driver) ⇄ Arun & Karthi (Co-Passengers)</h3>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black">
+                      94% Match Compatibility
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="font-bold text-slate-800 block">College Main Campus</span>
+                      <span className="text-slate-500 text-[11px]">Departure 05:00 PM • 3 open seats</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="font-bold text-slate-800 block">Arun Pickup (Arch Gate)</span>
+                      <span className="text-slate-500 text-[11px]">Ready 05:05 PM • +350m detour</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="font-bold text-slate-800 block">Srirangam North Gate</span>
+                      <span className="text-emerald-700 font-medium text-[11px]">Detour: 1.2 km (8 mins)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Step Workflow */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                    <span className="text-2xl font-black text-indigo-600 block mb-2">01</span>
+                    <h4 className="font-bold text-slate-900 text-sm mb-1">Enter Commute Route</h4>
+                    <p className="text-xs text-slate-500">Drivers specify campus portico & seats. Co-riders request pickup points.</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                    <span className="text-2xl font-black text-teal-500 block mb-2">02</span>
+                    <h4 className="font-bold text-slate-900 text-sm mb-1">4-Factor Match Score</h4>
+                    <p className="text-xs text-slate-500">Route overlap (40%), Time (25%), Distance (20%), and Detour (15%) evaluated.</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                    <span className="text-2xl font-black text-emerald-600 block mb-2">03</span>
+                    <h4 className="font-bold text-slate-900 text-sm mb-1">Share & Offset Emissions</h4>
+                    <p className="text-xs text-slate-500">Accept ride with 1 click. Save fuel expenses and reduce campus carbon footprint.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {page === 'dashboard' && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl">
+                  <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-300">
+                        {currentUser.department} • {role.toUpperCase()} MODE
+                      </span>
+                      <h2 className="text-2xl sm:text-3xl font-black mt-1">
+                        Welcome back, {currentUser.name.split(' ')[0]}! 👋
+                      </h2>
+                      <p className="text-xs sm:text-sm text-indigo-200 mt-1">
+                        Your campus commute corridor (College → Srirangam) is active. 2 co-passenger requests are pending review.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={toggleRole}
+                        className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs"
+                      >
+                        Switch to {role === 'driver' ? 'Passenger' : 'Driver'}
+                      </button>
+                      <button
+                        onClick={() => setPage(role === 'driver' ? 'create-ride' : 'find-ride')}
+                        className="px-4 py-2 rounded-xl bg-white text-indigo-900 font-bold text-xs hover:bg-slate-100"
+                      >
+                        {role === 'driver' ? '+ Create Ride' : 'Search Rides'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Active Rides</span>
+                    <span className="text-2xl font-black text-slate-900">{rides.length}</span>
+                    <span className="text-[10px] text-emerald-600 block font-semibold mt-1">● In corridor today</span>
+                  </div>
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Available Seats</span>
+                    <span className="text-2xl font-black text-slate-900">6</span>
+                    <span className="text-[10px] text-slate-500 block mt-1">Departing 05:00 PM</span>
+                  </div>
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Recommended Matches</span>
+                    <span className="text-2xl font-black text-slate-900">{matches.length}</span>
+                    <span className="text-[10px] text-indigo-600 block font-semibold mt-1">Up to 94% match</span>
+                  </div>
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Saved Detour & Impact</span>
+                    <span className="text-2xl font-black text-slate-900">{currentUser.savedCo2}</span>
+                    <span className="text-[10px] text-emerald-600 block font-semibold mt-1">{currentUser.totalTrips} shared rides</span>
+                  </div>
+                </div>
+
+                {/* Quick Actions Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <button onClick={() => setPage('create-ride')} className="p-4 bg-white hover:bg-indigo-50 rounded-2xl border border-slate-200 text-left transition-colors">
+                    <span className="text-indigo-600 font-bold block text-sm">+ Create Ride</span>
+                    <span className="text-slate-500 text-xs mt-0.5 block">Publish your seats & route tolerance</span>
+                  </button>
+                  <button onClick={() => setPage('find-ride')} className="p-4 bg-white hover:bg-indigo-50 rounded-2xl border border-slate-200 text-left transition-colors">
+                    <span className="text-teal-600 font-bold block text-sm">🔍 Find Ride</span>
+                    <span className="text-slate-500 text-xs mt-0.5 block">Search college drivers along your route</span>
+                  </button>
+                  <button onClick={() => setPage('recommendations')} className="p-4 bg-white hover:bg-indigo-50 rounded-2xl border border-slate-200 text-left transition-colors">
+                    <span className="text-amber-600 font-bold block text-sm">✨ Recommended Matches</span>
+                    <span className="text-slate-500 text-xs mt-0.5 block">Inspect 4-factor algorithm breakdown</span>
+                  </button>
+                </div>
+
+                {/* Upcoming Ride & Matches Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200">
+                    <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                      <h3 className="text-base font-bold text-slate-900">Upcoming Confirmed Ride</h3>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">Confirmed</span>
+                    </div>
+                    <div className="pt-4 space-y-3">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between text-xs">
+                        <span><strong>Tomorrow, Sep 17</strong> at 05:00 PM</span>
+                        <span className="text-slate-500">Hyundai i20 • 3 seats</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-slate-50 rounded-xl">
+                          <span className="text-[10px] text-slate-400 block font-bold">Origin</span>
+                          <span className="font-bold text-slate-800">College Main Campus (Gate 1)</span>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl">
+                          <span className="text-[10px] text-slate-400 block font-bold">Destination</span>
+                          <span className="font-bold text-slate-800">Srirangam Temple North Gate</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 text-xs">
+                        <span className="text-slate-500">Co-Rider: <strong>Arun Kumar (94% Match)</strong></span>
+                        <button onClick={() => setPage('route')} className="text-indigo-600 font-bold hover:underline">
+                          View Schematic Route Map →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activity Feed */}
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 space-y-4">
+                    <h3 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100">Recent Campus Activity</h3>
+                    <div className="space-y-3 text-xs">
+                      <div className="p-2.5 bg-slate-50 rounded-xl">
+                        <span className="font-bold text-slate-800 block">High Match Found (94%)</span>
+                        <span className="text-slate-500 text-[11px]">Arun requested pickup at Arch Gate</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 rounded-xl">
+                        <span className="font-bold text-slate-800 block">Sustainability Milestone</span>
+                        <span className="text-slate-500 text-[11px]">148 kg CO2 offset across 42 trips</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {page === 'create-ride' && (
+              <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+                <div>
+                  <span className="text-xs font-bold text-indigo-600 uppercase">Driver Portal</span>
+                  <h2 className="text-2xl font-black text-slate-900 mt-1">Publish a College Commute Ride</h2>
+                  <p className="text-xs text-slate-500">Offer empty seats to fellow students heading your way.</p>
+                </div>
+
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  showToast('Ride successfully published to campus corridor!');
+                  setPage('my-rides');
+                }} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Pickup Location (Origin)</label>
+                    <input type="text" defaultValue="College Main Campus (Gate 1)" required className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Final Destination</label>
+                    <input type="text" defaultValue="Srirangam Temple North Gate" required className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Date</label>
+                      <input type="date" defaultValue="2026-09-17" required className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Departure Time</label>
+                      <input type="text" defaultValue="05:00 PM" required className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Available Seats</label>
+                      <select className="w-full p-2.5 border border-slate-200 rounded-xl">
+                        <option>3 Seats</option>
+                        <option>2 Seats</option>
+                        <option>1 Seat</option>
+                        <option>4 Seats</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Vehicle Type</label>
+                      <input type="text" defaultValue="Car (Hyundai i20)" className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Preferred Corridor</label>
+                    <select className="w-full p-2.5 border border-slate-200 rounded-xl">
+                      <option>NH-45 Express via Samayapuram</option>
+                      <option>Expressway via No. 1 Tollgate</option>
+                      <option>Chathiram Bus Stand Trunk Road</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Maximum Acceptable Detour: 2.5 km (10 mins)</label>
+                    <input type="range" min="0.5" max="6" step="0.5" defaultValue="2.5" className="w-full accent-indigo-600" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Additional Notes</label>
+                    <textarea rows="2" defaultValue="Leaving right after lab session at 5:00 PM. Drop along NH-45/Srirangam." className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                  </div>
+                  <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md">
+                    Publish Ride
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {page === 'find-ride' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
+                  <h2 className="text-xl font-black text-slate-900 mb-4">Find Matching Rides</h2>
+                  <form onSubmit={(e) => { e.preventDefault(); showToast('Updated route search results'); }} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-600 mb-1">Pickup Stop</label>
+                      <input type="text" defaultValue="Near College Campus" className="w-full p-2 border border-slate-200 rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-600 mb-1">Destination</label>
+                      <input type="text" defaultValue="Srirangam" className="w-full p-2 border border-slate-200 rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-600 mb-1">Departure</label>
+                      <input type="text" defaultValue="05:00 PM" className="w-full p-2 border border-slate-200 rounded-xl" />
+                    </div>
+                    <div className="flex items-end">
+                      <button type="submit" className="w-full py-2 bg-indigo-600 text-white font-bold rounded-xl">
+                        Find Matching Rides
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {rides.map(r => (
+                    <div key={r.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <img src={r.driverAvatar} className="w-10 h-10 rounded-full object-cover" />
+                            <div>
+                              <h4 className="font-bold text-slate-800 text-sm">{r.driverName}</h4>
+                              <p className="text-[11px] text-slate-500">{r.vehicleType} • ★ {r.driverRating}</p>
+                            </div>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-xs">
+                            {r.matchScore}% Match
+                          </span>
+                        </div>
+                        <div className="p-2.5 bg-slate-50 rounded-xl text-xs space-y-1 mb-3">
+                          <div><strong>From:</strong> {r.pickup}</div>
+                          <div><strong>To:</strong> {r.destination}</div>
+                          <div className="text-[11px] text-slate-400">Detour: {r.estimatedDetour} • Leaves {r.departureTime}</div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
+                        <span>{r.availableSeats} seats left • <strong>{r.costPerSeat}</strong></span>
+                        <button
+                          onClick={() => { setActiveMatchId('match_01'); setPage('match-details'); }}
+                          className="px-3 py-1.5 bg-indigo-600 text-white font-bold rounded-lg"
+                        >
+                          View Match
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {page === 'recommendations' && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-3xl">
+                  <h2 className="text-xl font-black">Recommendation Compatibility Dashboard</h2>
+                  <p className="text-xs text-indigo-200 mt-1">
+                    Transparent 4-factor scoring model simulated for college corridor journeys:
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-center text-xs">
+                    <div className="p-2 bg-white/10 rounded-xl"><strong>40%</strong><span className="block text-[10px] text-slate-300">Route Overlap</span></div>
+                    <div className="p-2 bg-white/10 rounded-xl"><strong>25%</strong><span className="block text-[10px] text-slate-300">Time Buffer</span></div>
+                    <div className="p-2 bg-white/10 rounded-xl"><strong>20%</strong><span className="block text-[10px] text-slate-300">Pickup Distance</span></div>
+                    <div className="p-2 bg-white/10 rounded-xl"><strong>15%</strong><span className="block text-[10px] text-slate-300">Extra Detour</span></div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {matches.map(m => (
+                    <div key={m.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-4">
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <img src={m.driver.avatar} className="w-10 h-10 rounded-full" />
+                          <div>
+                            <span className="font-bold text-sm block">{m.driver.name}</span>
+                            <span className="text-[11px] text-slate-400">Co-Passenger: {m.passenger.name}</span>
+                          </div>
+                        </div>
+                        <span className="text-base font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-200">
+                          {m.totalScore}% Match
+                        </span>
+                      </div>
+
+                      {/* Factors */}
+                      <div className="space-y-2 text-xs">
+                        {m.factorBreakdown.map((f, i) => (
+                          <div key={i}>
+                            <div className="flex justify-between text-[11px] mb-0.5">
+                              <span className="font-semibold text-slate-700">{f.name}</span>
+                              <span className="font-bold text-slate-900">{f.score}/{f.max} pts</span>
+                            </div>
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                              <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${(f.score / f.max) * 100}%` }}></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-xs">
+                        <span className="text-slate-500">Detour: <strong>{m.detourKm} ({m.detourMins})</strong></span>
+                        <button
+                          onClick={() => { setActiveMatchId(m.id); setPage('match-details'); }}
+                          className="px-3 py-1.5 bg-indigo-600 text-white font-bold rounded-lg"
+                        >
+                          Inspect Match Details →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {page === 'match-details' && (
+              <div className="max-w-4xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+                <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                  <div>
+                    <button onClick={() => setPage('recommendations')} className="text-xs text-indigo-600 font-bold mb-1 block">← Back to Matches</button>
+                    <h2 className="text-2xl font-black text-slate-900">Match Details: Hari ⇄ Arun</h2>
+                  </div>
+                  <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-black text-sm border border-emerald-200">
+                    94% Match Score
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="p-4 bg-slate-50 rounded-2xl">
+                    <span className="text-[10px] font-bold uppercase text-indigo-600 block mb-1">Driver Details</span>
+                    <span className="text-sm font-bold text-slate-800 block">Hariharan (Hari)</span>
+                    <span className="text-slate-500 block">Hyundai i20 (TN-45-AZ-2024)</span>
+                    <span className="text-slate-500 block">Leaves College Main Portico at 05:00 PM</span>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl">
+                    <span className="text-[10px] font-bold uppercase text-amber-600 block mb-1">Matched Co-Passenger</span>
+                    <span className="text-sm font-bold text-slate-800 block">Arun Kumar</span>
+                    <span className="text-slate-500 block">Pickup: Near College Arch Gate (05:05 PM)</span>
+                    <span className="text-slate-500 block">Drop: Srirangam North Gate</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-xs space-y-2">
+                  <h4 className="font-bold text-indigo-900">Factor Compatibility Breakdown</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                    <div className="bg-white p-2 rounded-xl"><strong>40 / 40</strong><span className="text-[10px] block text-slate-400">Route Overlap</span></div>
+                    <div className="bg-white p-2 rounded-xl"><strong>25 / 25</strong><span className="text-[10px] block text-slate-400">Time Synchrony</span></div>
+                    <div className="bg-white p-2 rounded-xl"><strong>20 / 20</strong><span className="text-[10px] block text-slate-400">Pickup Distance</span></div>
+                    <div className="bg-white p-2 rounded-xl"><strong>9 / 15</strong><span className="text-[10px] block text-slate-400">Extra Detour</span></div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => { showToast('Direct message note sent to Arun!'); }}
+                    className="px-4 py-2 border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 text-xs"
+                  >
+                    Contact User
+                  </button>
+                  <button
+                    onClick={() => { showToast('Match declined.', 'info'); setPage('recommendations'); }}
+                    className="px-4 py-2 bg-rose-50 text-rose-700 border border-rose-200 font-bold rounded-xl hover:bg-rose-100 text-xs"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => { showToast('Ride match request accepted! Waypoint added.'); setPage('route'); }}
+                    className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 text-xs shadow-md"
+                  >
+                    Accept Ride
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {page === 'route' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900">Dynamic Route & Waypoint Sequence</h2>
+                    <p className="text-xs text-slate-500">Ordered sequence for minimal detour along NH-45 corridor.</p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-3 py-1.5 rounded-xl font-bold">
+                    ⚠️ Demo Map Placeholder (Frontend UI Only)
+                  </div>
+                </div>
+
+                {/* SVG Schematic Map Canvas */}
+                <div className="relative w-full h-80 sm:h-96 rounded-3xl bg-slate-950 overflow-hidden border border-slate-800 flex items-center justify-center p-4">
+                  <svg viewBox="0 0 800 400" className="w-full h-full">
+                    {/* Cauvery River */}
+                    <path d="M -20,350 Q 400,320 820,360" stroke="#0284c7" strokeWidth="22" fill="none" opacity="0.4" />
+                    <text x="600" y="370" fill="#38bdf8" fontSize="11" opacity="0.6">~ Cauvery River Basin ~</text>
+
+                    {/* Trunk Road NH-45 */}
+                    <path d="M 80,280 C 200,240 350,150 500,160 C 650,170 700,190 740,200" stroke="#3b82f6" strokeWidth="6" fill="none" />
+                    {/* Animated Line */}
+                    <path d="M 80,280 C 200,240 350,150 500,160 C 650,170 700,190 740,200" stroke="#38bdf8" strokeWidth="3" strokeDasharray="8 6" fill="none">
+                      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="4s" repeatCount="indefinite" />
+                    </path>
+
+                    {/* Markers */}
+                    {/* A: College */}
+                    <circle cx="80" cy="280" r="14" fill="#4f46e5" />
+                    <text x="80" y="284" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">A</text>
+                    <text x="80" y="310" fill="#ffffff" fontSize="10" textAnchor="middle">College Portico</text>
+
+                    {/* P1: Arun Pickup */}
+                    <circle cx="210" cy="235" r="12" fill="#f59e0b" />
+                    <text x="210" y="239" fill="#000000" fontSize="9" fontWeight="bold" textAnchor="middle">P1</text>
+                    <text x="210" y="260" fill="#fde68a" fontSize="10" textAnchor="middle">Arun Pickup (Arch)</text>
+
+                    {/* P2: Samayapuram (Karthi) */}
+                    <circle cx="400" cy="155" r="12" fill="#f59e0b" />
+                    <text x="400" y="159" fill="#000000" fontSize="9" fontWeight="bold" textAnchor="middle">P2</text>
+                    <text x="400" y="140" fill="#fde68a" fontSize="10" textAnchor="middle">Samayapuram (Karthi)</text>
+
+                    {/* Intermediate: Tollgate */}
+                    <circle cx="560" cy="165" r="8" fill="#94a3b8" />
+                    <text x="560" y="150" fill="#cbd5e1" fontSize="9" textAnchor="middle">No.1 Tollgate</text>
+
+                    {/* B: Srirangam */}
+                    <circle cx="740" cy="200" r="14" fill="#e11d48" />
+                    <text x="740" y="204" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">B</text>
+                    <text x="740" y="225" fill="#f43f5e" fontSize="10" textAnchor="middle">Srirangam Gate</text>
+                  </svg>
+                </div>
+
+                {/* Vertical Itinerary */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 space-y-4">
+                  <h4 className="font-bold text-slate-900 text-sm">Sequence & Waypoint Metrics</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-center text-xs">
+                    <div className="p-3 bg-slate-50 rounded-xl"><strong>18.4 km</strong><span className="block text-slate-400">Total Distance</span></div>
+                    <div className="p-3 bg-slate-50 rounded-xl"><strong>52 mins</strong><span className="block text-slate-400">Est. Travel Time</span></div>
+                    <div className="p-3 bg-slate-50 rounded-xl"><strong>+1.2 km (8 mins)</strong><span className="block text-indigo-600 font-bold">Extra Detour</span></div>
+                    <div className="p-3 bg-slate-50 rounded-xl"><strong>4.8 kg CO2</strong><span className="block text-emerald-600 font-bold">Carbon Prevented</span></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {page === 'my-rides' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                  <h2 className="text-2xl font-black text-slate-900">My Carpool Rides</h2>
+                  <button onClick={() => setPage('create-ride')} className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs">
+                    + Offer New Ride
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-800 text-sm">Tomorrow, Sep 17 • 05:00 PM</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">Confirmed</span>
+                    </div>
+                    <div className="text-xs text-slate-600 space-y-1">
+                      <div>From: College Main Portico (Gate 1)</div>
+                      <div>To: Srirangam Temple North Gate</div>
+                      <div>Co-Rider: Arun Kumar (94% Match)</div>
+                    </div>
+                    <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                      <button onClick={() => setPage('route')} className="text-indigo-600 font-bold">View Route →</button>
+                      <button onClick={() => showToast('Ride schedule cancelled.', 'info')} className="text-rose-500 font-bold">Cancel</button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 space-y-3 opacity-80">
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-800 text-sm">Sep 15, 2026 • 05:00 PM</span>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold">Completed</span>
+                    </div>
+                    <div className="text-xs text-slate-600 space-y-1">
+                      <div>From: College Main Portico</div>
+                      <div>To: Srirangam (3 riders shared)</div>
+                      <div className="text-emerald-600 font-semibold">Saved 4.8 kg CO2 • ₹105 fuel offset</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {page === 'profile' && (
+              <div className="max-w-3xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+                <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-4">
+                    <img src={currentUser.avatar} className="w-16 h-16 rounded-2xl object-cover ring-2 ring-indigo-500/30" />
+                    <div>
+                      <h2 className="text-xl font-black text-slate-900">{currentUser.name}</h2>
+                      <p className="text-xs text-slate-500">{currentUser.department} • {currentUser.batch}</p>
+                      <p className="text-xs text-indigo-600 font-bold">Roll ID: {currentUser.collegeId} • Role: {currentUser.role.toUpperCase()}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => showToast('Profile details updated!')} className="px-3.5 py-1.5 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50">
+                    Edit Profile
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center text-xs p-3 bg-slate-50 rounded-2xl">
+                  <div><strong>★ {currentUser.rating}</strong><span className="block text-[10px] text-slate-400">Rating</span></div>
+                  <div><strong>{currentUser.totalTrips}</strong><span className="block text-[10px] text-slate-400">Total Trips</span></div>
+                  <div><strong>{currentUser.savedCo2}</strong><span className="block text-[10px] text-slate-400">CO2 Saved</span></div>
+                </div>
+
+                {currentUser.vehicle && (
+                  <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 text-xs space-y-1">
+                    <span className="font-bold text-indigo-900 block text-sm">Registered Vehicle</span>
+                    <p className="text-slate-700">Model: <strong>{currentUser.vehicle.model}</strong></p>
+                    <p className="text-slate-700">License: <strong>{currentUser.vehicle.licensePlate}</strong></p>
+                    <p className="text-slate-700">Capacity: <strong>{currentUser.vehicle.totalSeats} seats</strong></p>
+                  </div>
+                )}
+
+                {/* Switcher */}
+                <div className="pt-4 border-t border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase block mb-3">Switch Test Perspective (Evaluator Demo):</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {INITIAL_USERS.map(u => (
+                      <button
+                        key={u.id}
+                        onClick={() => switchUser(u.id)}
+                        className={`p-3 rounded-xl border text-left text-xs ${currentUser.id === u.id ? 'border-indigo-600 bg-indigo-50 font-bold' : 'border-slate-200'}`}
+                      >
+                        <span className="block font-bold">{u.name.split(' ')[0]}</span>
+                        <span className="block text-[10px] text-slate-500 capitalize">{u.role}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {page === 'auth' && (
+              <div className="max-w-md mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl space-y-5">
+                <div className="text-center">
+                  <h2 className="text-xl font-black text-slate-900">Campus Sign In UI</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Frontend mock authentication interface</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => { setRole('driver'); showToast('Role set to Driver'); }} className={`py-2 rounded-xl text-xs font-bold border ${role === 'driver' ? 'bg-indigo-50 border-indigo-600 text-indigo-700' : 'border-slate-200'}`}>
+                    🚗 Driver
+                  </button>
+                  <button onClick={() => { setRole('passenger'); showToast('Role set to Passenger'); }} className={`py-2 rounded-xl text-xs font-bold border ${role === 'passenger' ? 'bg-indigo-50 border-indigo-600 text-indigo-700' : 'border-slate-200'}`}>
+                    👥 Passenger
+                  </button>
+                </div>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">College Email</label>
+                    <input type="email" defaultValue="student@college.edu" className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">Password</label>
+                    <input type="password" defaultValue="••••••••" className="w-full p-2.5 border border-slate-200 rounded-xl" />
+                  </div>
+                  <button onClick={() => { showToast('Signed in successfully!'); setPage('dashboard'); }} className="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-md">
+                    Sign In as {role.toUpperCase()}
+                  </button>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Global Footer */}
+          <footer className="bg-slate-950 text-slate-400 py-6 border-t border-slate-800 text-center text-xs">
+            <p className="font-semibold text-slate-300">Smart Carpool & Dynamic Route Matching System</p>
+            <p className="text-[11px] text-slate-500 mt-1">College CSE Final Year Project • React + Tailwind CSS UI Prototype</p>
+          </footer>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
