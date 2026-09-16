@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "vite --host",
-    "build": "echo 'Build step skipped'",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {

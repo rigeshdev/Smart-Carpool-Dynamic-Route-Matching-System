@@ -18,8 +18,8 @@ import {
 import ProfileCard from '../components/cards/ProfileCard';
 import Modal from '../components/common/Modal';
 import Button from '../components/common/Button';
-import { useCarpool } from '../../context/CarpoolContext';
-import { DEMO_USERS } from '../../data/mockData';
+import { useCarpool } from '../context/CarpoolContext';
+import { DEMO_USERS } from '../data/mockData';
 
 export default function ProfilePage() {
   const { currentUser, updateProfile, switchUser, toggleRole, role } = useCarpool();

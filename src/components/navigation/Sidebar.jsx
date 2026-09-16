@@ -1,5 +1,4 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'lucide-react';
 import { NavLink as RouterNavLink, useNavigate as useRouterNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,

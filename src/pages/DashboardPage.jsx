@@ -19,8 +19,8 @@ import {
 } from 'lucide-react';
 import Button from '../components/common/Button';
 import StatusBadge from '../components/common/StatusBadge';
-import { useCarpool } from '../../context/CarpoolContext';
-import { MOCK_ACTIVITY_FEED } from '../../data/mockData';
+import { useCarpool } from '../context/CarpoolContext';
+import { MOCK_ACTIVITY_FEED } from '../data/mockData';
 
 export default function DashboardPage() {
   const { currentUser, role, toggleRole, rides, matches, myRides } = useCarpool();

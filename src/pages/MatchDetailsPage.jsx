@@ -23,7 +23,7 @@ import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import ScoreCard from '../components/cards/ScoreCard';
 import StatusBadge from '../components/common/StatusBadge';
-import { useCarpool } from '../../context/CarpoolContext';
+import { useCarpool } from '../context/CarpoolContext';
 
 export default function MatchDetailsPage() {
   const { matchId } = useParams();

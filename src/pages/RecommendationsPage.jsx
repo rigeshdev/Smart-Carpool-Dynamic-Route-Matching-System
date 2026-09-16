@@ -16,7 +16,7 @@ import {
 import MatchCard from '../components/cards/MatchCard';
 import ScoreCard from '../components/cards/ScoreCard';
 import Button from '../components/common/Button';
-import { useCarpool } from '../../context/CarpoolContext';
+import { useCarpool } from '../context/CarpoolContext';
 
 export default function RecommendationsPage() {
   const { matches } = useCarpool();

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import Button from '../components/common/Button';
 import LocationInput from '../components/common/LocationInput';
-import { useCarpool } from '../../context/CarpoolContext';
+import { useCarpool } from '../context/CarpoolContext';
 
 export default function CreateRidePage() {
   const { publishRide, currentUser } = useCarpool();

@@ -12,8 +12,8 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import Button from '../components/common/Button';
-import { useCarpool } from '../../context/CarpoolContext';
-import { DEMO_USERS } from '../../data/mockData';
+import { useCarpool } from '../context/CarpoolContext';
+import { DEMO_USERS } from '../data/mockData';
 
 export default function AuthPage() {
   const [isRegister, setIsRegister] = useState(false);

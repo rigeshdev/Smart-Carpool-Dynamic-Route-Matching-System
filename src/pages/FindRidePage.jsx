@@ -15,7 +15,7 @@ import {
 import Button from '../components/common/Button';
 import LocationInput from '../components/common/LocationInput';
 import RideCard from '../components/cards/RideCard';
-import { useCarpool } from '../../context/CarpoolContext';
+import { useCarpool } from '../context/CarpoolContext';
 
 export default function FindRidePage() {
   const { rides, searchParams, setSearchParams, addToast } = useCarpool();
